@@ -1,0 +1,39 @@
+FROM alpine AS builder
+
+# Download QEMU, see https://github.com/docker/hub-feedback/issues/1261
+ENV QEMU_URL https://github.com/balena-io/qemu/releases/download/v4.0.0%2Bbalena2/qemu-4.0.0.balena2-aarch64.tar.gz
+RUN apk add curl && curl -L ${QEMU_URL} | tar zxvf - -C . --strip-components 1
+
+
+
+FROM arm64v8/golang:1.13-alpine AS build_deps
+
+# Add QEMU
+COPY --from=builder qemu-aarch64-static /usr/bin
+
+RUN apk add --no-cache git
+
+WORKDIR /workspace
+ENV GO111MODULE=on
+
+COPY go.mod .
+COPY go.sum .
+
+RUN go mod download
+
+FROM build_deps AS build
+
+COPY . .
+
+RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+
+FROM arm64v8/alpine:3.9
+
+# Add QEMU
+COPY --from=builder qemu-aarch64-static /usr/bin
+
+RUN apk add --no-cache ca-certificates
+
+COPY --from=build /workspace/webhook /usr/local/bin/webhook
+
+ENTRYPOINT ["webhook"]

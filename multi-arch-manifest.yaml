@@ -1,0 +1,11 @@
+image: phraide/cert-manager-webhook-gandi:v0.2.0
+manifests:
+  - image: phraide/cert-manager-webhook-gandi:v0.2.0-amd64
+    platform:
+      architecture: amd64
+      os: linux
+  - image: phraide/cert-manager-webhook-gandi:v0.2.0-arm64
+    platform:
+      architecture: arm64
+      os: linux
+      variant: v8
